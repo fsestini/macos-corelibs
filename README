@@ -1,0 +1,15 @@
+# Mac OS core libraries
+
+Type-safe Haskell bindings to C-based frameworks of the Apple Mac OS SDK. Most
+notably, the library offers bindings to
+
+* CoreFoundation
+* CoreGraphics
+* Carbon Accessibility
+
+This library is unstable, experimental, WIP, and under active testing. Rely upon
+it with great care, and definitely avoid it in serious/production code.
+
+The bindings do not cover the all of the target frameworks, and it is likely
+they will never reach 100% coverage. Additions may nevertheless happen, and PRs
+adding functionality or even additional frameworks are very welcome.
