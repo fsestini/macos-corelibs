@@ -59,8 +59,6 @@ displayBounds dId = alloca $ \p -> do
   cgDisplayBounds_ (fromIntegral dId) p
   peek p
 
-type ForeignCGError = CInt
-
 foreign import ccall unsafe "CGGetActiveDisplayList"
   cgGetActiveDisplayList
   :: CUInt -> Ptr DisplayID -> Ptr CUInt -> IO ForeignCGError

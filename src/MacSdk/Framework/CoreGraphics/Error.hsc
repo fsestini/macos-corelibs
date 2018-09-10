@@ -1,6 +1,7 @@
 module MacSdk.Framework.CoreGraphics.Error
   ( intToCGError
   , CGError(..)
+  , ForeignCGError
   , AsCGError(..)
   , MonadError
   , except
@@ -31,6 +32,8 @@ data CGError
   deriving (Show, Typeable)
 
 instance Exception CGError
+
+type ForeignCGError = CInt
 
 intToCGError :: CInt -> Either CGError ()
 intToCGError x
