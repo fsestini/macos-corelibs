@@ -133,13 +133,3 @@ newWorkspaceWatcher f = do
 
 stopWorkspaceWatcher :: WorkspaceWatcher -> IO ()
 stopWorkspaceWatcher (WorkspaceWatcher p) = stop_workspace_watcher p
-
--- setWorkspaceCallback :: WorkspaceCallback -> IO ()
--- setWorkspaceCallback f =
---   wrap_workspace_callback (toForeignWCallb f) >>= set_workspace_callback
-
--- foreign import ccall count_desktops_for_display :: CFDictionaryRef -> IO Word32
-
--- count_desktops_for_display' :: Dictionary -> IO Int
--- count_desktops_for_display' dict =
---   fmap fromIntegral $ withCFPtr dict count_desktops_for_display
