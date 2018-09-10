@@ -10,6 +10,7 @@
 
 module MacSdk.Framework.CoreGraphics.Window
   ( WindowID
+  , CGWindowID
   , WindowListOption(..)
   , WindowInfoDictionary
   , WindowListKey(..)
