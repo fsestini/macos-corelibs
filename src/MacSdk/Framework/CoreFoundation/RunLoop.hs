@@ -153,9 +153,6 @@ machPortRunLoopSource al mp i = flip with pure $ do
   mp' <- managed $ withCFPtr mp
   liftIO $ cfMachPortCreateRunLoopSource al' mp' (fromIntegral i) >>= manageCFObj
 
-foreign import ccall unsafe "mykCFRunLoopCommonModes"
-  cfRunLoopCommonModes :: IO CFRunLoopMode
-
 -- | Creates a loop source from the given mach port, and adds it to the main run
 -- loop with default parameters.
 addSourceToMainLoop :: MachPort -> IO ()
