@@ -12,7 +12,6 @@ import MacSdk.Framework.CoreFoundation
 import Control.Monad.Trans.Maybe (MaybeT(..))
 import Control.Monad (msum)
 import Data.Maybe (fromMaybe)
-import System.IO.Unsafe (unsafePerformIO)
 
 data Role
   = ApplicationRole
@@ -219,9 +218,9 @@ toRoleCFStringRef = \case
   DockItemRole -> kAXDockItemRole_
   OtherRole str -> fromString CFStringEncodingASCII str >>= flip withCFPtr pure
 
-fromRoleCFStringRef :: CFStringRef -> IO Role
-fromRoleCFStringRef role = do
-  Just str' <- retainManageCFObj role >>= toString CFStringEncodingASCII
+fromRoleCFString :: CFString -> IO Role
+fromRoleCFString roleString = withCFPtr roleString $ \role -> do
+  Just str' <- toString CFStringEncodingASCII roleString
   fmap (fromMaybe (OtherRole str')) . runMaybeT . msum . fmap MaybeT $
     [ kAXApplicationRole_ >>= \str -> cfEqual str role >>= \b ->
         pure (if b then Just ApplicationRole else Nothing)
@@ -385,7 +384,7 @@ data Subrole
   | ProcessSwitcherListSubrole
   -- ^ The display of running applications (processes) that appears when a user
   -- presses Command-Tab.
-  | SubroleOther CFStringRef
+  | SubroleOther String -- CFString
   deriving (Eq, Show)
 
 foreign import ccall unsafe kAXCloseButtonSubrole_ :: IO CFStringRef
@@ -416,9 +415,8 @@ foreign import ccall unsafe kAXDockExtraDockItemSubrole_ :: IO CFStringRef
 foreign import ccall unsafe kAXTrashDockItemSubrole_ :: IO CFStringRef
 foreign import ccall unsafe kAXProcessSwitcherListSubrole_ :: IO CFStringRef
 
-{-# NOINLINE toSubroleString #-}
-toSubroleString :: Subrole -> CFStringRef
-toSubroleString = unsafePerformIO . \case
+toSubroleString :: Subrole -> IO CFStringRef
+toSubroleString = \case
   CloseButtonSubrole -> kAXCloseButtonSubrole_
   MinimizeButtonSubrole -> kAXMinimizeButtonSubrole_
   ZoomButtonSubrole -> kAXZoomButtonSubrole_
@@ -446,63 +444,66 @@ toSubroleString = unsafePerformIO . \case
   DockExtraDockItemSubrole -> kAXDockExtraDockItemSubrole_
   TrashDockItemSubrole -> kAXTrashDockItemSubrole_
   ProcessSwitcherListSubrole -> kAXProcessSwitcherListSubrole_
-  SubroleOther str -> pure str
+  SubroleOther str ->
+    fromString CFStringEncodingASCII str >>= flip withCFPtr pure
 
-fromSubroleString :: CFStringRef -> IO Subrole
-fromSubroleString subr =
-  fmap (fromMaybe (SubroleOther subr)) . runMaybeT . msum . fmap MaybeT $
-  [ kAXCloseButtonSubrole_ >>= \str -> cfEqual str subr >>= \b ->
-      pure (if b then Just CloseButtonSubrole else Nothing)
-  , kAXMinimizeButtonSubrole_ >>= \str -> cfEqual str subr >>= \b ->
-      pure (if b then Just MinimizeButtonSubrole else Nothing)
-  , kAXZoomButtonSubrole_ >>= \str -> cfEqual str subr >>= \b ->
-      pure (if b then Just ZoomButtonSubrole else Nothing)
-  , kAXToolbarButtonSubrole_ >>= \str -> cfEqual str subr >>= \b ->
-      pure (if b then Just ToolbarButtonSubrole else Nothing)
-  , kAXSecureTextFieldSubrole_ >>= \str -> cfEqual str subr >>= \b ->
-      pure (if b then Just SecureTextFieldSubrole else Nothing)
-  , kAXTableRowSubrole_ >>= \str -> cfEqual str subr >>= \b ->
-      pure (if b then Just TableRowSubrole else Nothing)
-  , kAXOutlineRowSubrole_ >>= \str -> cfEqual str subr >>= \b ->
-      pure (if b then Just OutlineRowSubrole else Nothing)
-  , kAXUnknownSubrole_ >>= \str -> cfEqual str subr >>= \b ->
-      pure (if b then Just UnknownSubrole else Nothing)
-  , kAXStandardWindowSubrole_ >>= \str -> cfEqual str subr >>= \b ->
-      pure (if b then Just StandardWindowSubrole else Nothing)
-  , kAXDialogSubrole_ >>= \str -> cfEqual str subr >>= \b ->
-      pure (if b then Just DialogSubrole else Nothing)
-  , kAXSystemDialogSubrole_ >>= \str -> cfEqual str subr >>= \b ->
-      pure (if b then Just SystemDialogSubrole else Nothing)
-  , kAXFloatingWindowSubrole_ >>= \str -> cfEqual str subr >>= \b ->
-      pure (if b then Just FloatingWindowSubrole else Nothing)
-  , kAXSystemFloatingWindowSubrole_ >>= \str -> cfEqual str subr >>= \b ->
-      pure (if b then Just SystemFloatingWindowSubrole else Nothing)
-  , kAXIncrementArrowSubrole_ >>= \str -> cfEqual str subr >>= \b ->
-      pure (if b then Just IncrementArrowSubrole else Nothing)
-  , kAXDecrementArrowSubrole_ >>= \str -> cfEqual str subr >>= \b ->
-      pure (if b then Just DecrementArrowSubrole else Nothing)
-  , kAXIncrementPageSubrole_ >>= \str -> cfEqual str subr >>= \b ->
-      pure (if b then Just IncrementPageSubrole else Nothing)
-  , kAXDecrementPageSubrole_ >>= \str -> cfEqual str subr >>= \b ->
-      pure (if b then Just DecrementPageSubrole else Nothing)
-  , kAXSortButtonSubrole_ >>= \str -> cfEqual str subr >>= \b ->
-      pure (if b then Just SortButtonSubrole else Nothing)
-  , kAXSearchFieldSubrole_ >>= \str -> cfEqual str subr >>= \b ->
-      pure (if b then Just SearchFieldSubrole else Nothing)
-  , kAXApplicationDockItemSubrole_ >>= \str -> cfEqual str subr >>= \b ->
-      pure (if b then Just ApplicationDockItemSubrole else Nothing)
-  , kAXDocumentDockItemSubrole_ >>= \str -> cfEqual str subr >>= \b ->
-      pure (if b then Just DocumentDockItemSubrole else Nothing)
-  , kAXFolderDockItemSubrole_ >>= \str -> cfEqual str subr >>= \b ->
-      pure (if b then Just FolderDockItemSubrole else Nothing)
-  , kAXMinimizedWindowDockItemSubrole_ >>= \str -> cfEqual str subr >>= \b ->
-      pure (if b then Just MinimizedWindowDockItemSubrole else Nothing)
-  , kAXURLDockItemSubrole_ >>= \str -> cfEqual str subr >>= \b ->
-      pure (if b then Just URLDockItemSubrole else Nothing)
-  , kAXDockExtraDockItemSubrole_ >>= \str -> cfEqual str subr >>= \b ->
-      pure (if b then Just DockExtraDockItemSubrole else Nothing)
-  , kAXTrashDockItemSubrole_ >>= \str -> cfEqual str subr >>= \b ->
-      pure (if b then Just TrashDockItemSubrole else Nothing)
-  , kAXProcessSwitcherListSubrole_ >>= \str -> cfEqual str subr >>= \b ->
-      pure (if b then Just ProcessSwitcherListSubrole else Nothing)
-  ]
+fromSubroleCFString :: CFString -> IO Subrole
+fromSubroleCFString subrole = do
+  Just sr <- toString CFStringEncodingASCII subrole
+  withCFPtr subrole $ \subr ->
+    fmap (fromMaybe (SubroleOther sr)) . runMaybeT . msum . fmap MaybeT $
+    [ kAXCloseButtonSubrole_ >>= \str -> cfEqual str subr >>= \b ->
+        pure (if b then Just CloseButtonSubrole else Nothing)
+    , kAXMinimizeButtonSubrole_ >>= \str -> cfEqual str subr >>= \b ->
+        pure (if b then Just MinimizeButtonSubrole else Nothing)
+    , kAXZoomButtonSubrole_ >>= \str -> cfEqual str subr >>= \b ->
+        pure (if b then Just ZoomButtonSubrole else Nothing)
+    , kAXToolbarButtonSubrole_ >>= \str -> cfEqual str subr >>= \b ->
+        pure (if b then Just ToolbarButtonSubrole else Nothing)
+    , kAXSecureTextFieldSubrole_ >>= \str -> cfEqual str subr >>= \b ->
+        pure (if b then Just SecureTextFieldSubrole else Nothing)
+    , kAXTableRowSubrole_ >>= \str -> cfEqual str subr >>= \b ->
+        pure (if b then Just TableRowSubrole else Nothing)
+    , kAXOutlineRowSubrole_ >>= \str -> cfEqual str subr >>= \b ->
+        pure (if b then Just OutlineRowSubrole else Nothing)
+    , kAXUnknownSubrole_ >>= \str -> cfEqual str subr >>= \b ->
+        pure (if b then Just UnknownSubrole else Nothing)
+    , kAXStandardWindowSubrole_ >>= \str -> cfEqual str subr >>= \b ->
+        pure (if b then Just StandardWindowSubrole else Nothing)
+    , kAXDialogSubrole_ >>= \str -> cfEqual str subr >>= \b ->
+        pure (if b then Just DialogSubrole else Nothing)
+    , kAXSystemDialogSubrole_ >>= \str -> cfEqual str subr >>= \b ->
+        pure (if b then Just SystemDialogSubrole else Nothing)
+    , kAXFloatingWindowSubrole_ >>= \str -> cfEqual str subr >>= \b ->
+        pure (if b then Just FloatingWindowSubrole else Nothing)
+    , kAXSystemFloatingWindowSubrole_ >>= \str -> cfEqual str subr >>= \b ->
+        pure (if b then Just SystemFloatingWindowSubrole else Nothing)
+    , kAXIncrementArrowSubrole_ >>= \str -> cfEqual str subr >>= \b ->
+        pure (if b then Just IncrementArrowSubrole else Nothing)
+    , kAXDecrementArrowSubrole_ >>= \str -> cfEqual str subr >>= \b ->
+        pure (if b then Just DecrementArrowSubrole else Nothing)
+    , kAXIncrementPageSubrole_ >>= \str -> cfEqual str subr >>= \b ->
+        pure (if b then Just IncrementPageSubrole else Nothing)
+    , kAXDecrementPageSubrole_ >>= \str -> cfEqual str subr >>= \b ->
+        pure (if b then Just DecrementPageSubrole else Nothing)
+    , kAXSortButtonSubrole_ >>= \str -> cfEqual str subr >>= \b ->
+        pure (if b then Just SortButtonSubrole else Nothing)
+    , kAXSearchFieldSubrole_ >>= \str -> cfEqual str subr >>= \b ->
+        pure (if b then Just SearchFieldSubrole else Nothing)
+    , kAXApplicationDockItemSubrole_ >>= \str -> cfEqual str subr >>= \b ->
+        pure (if b then Just ApplicationDockItemSubrole else Nothing)
+    , kAXDocumentDockItemSubrole_ >>= \str -> cfEqual str subr >>= \b ->
+        pure (if b then Just DocumentDockItemSubrole else Nothing)
+    , kAXFolderDockItemSubrole_ >>= \str -> cfEqual str subr >>= \b ->
+        pure (if b then Just FolderDockItemSubrole else Nothing)
+    , kAXMinimizedWindowDockItemSubrole_ >>= \str -> cfEqual str subr >>= \b ->
+        pure (if b then Just MinimizedWindowDockItemSubrole else Nothing)
+    , kAXURLDockItemSubrole_ >>= \str -> cfEqual str subr >>= \b ->
+        pure (if b then Just URLDockItemSubrole else Nothing)
+    , kAXDockExtraDockItemSubrole_ >>= \str -> cfEqual str subr >>= \b ->
+        pure (if b then Just DockExtraDockItemSubrole else Nothing)
+    , kAXTrashDockItemSubrole_ >>= \str -> cfEqual str subr >>= \b ->
+        pure (if b then Just TrashDockItemSubrole else Nothing)
+    , kAXProcessSwitcherListSubrole_ >>= \str -> cfEqual str subr >>= \b ->
+        pure (if b then Just ProcessSwitcherListSubrole else Nothing)
+    ]

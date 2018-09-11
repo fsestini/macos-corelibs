@@ -12,7 +12,7 @@ import MacSdk.Framework.CoreGraphics.Rect
 
 import Foreign (castPtr)
 import Control.Monad.Trans.Maybe
-import Control.Monad (msum, join)
+import Control.Monad (msum, join, (<=<))
 import Data.Maybe (fromMaybe)
 import Data.Bifunctor (bimap)
 
@@ -693,9 +693,11 @@ fromAttributeString attr = runMaybeT . msum . fmap MaybeT $
 attrGetterSetter :: Attribute a -> (a -> IO CFTypeRef, CFTypeRef -> IO a)
 attrGetterSetter = \case
   RoleAttribute ->
-    (fmap asCFType . toRoleCFStringRef, fromRoleCFStringRef . castPtr)
+    (fmap asCFType . toRoleCFStringRef,
+     fromRoleCFString <=< manageCFObj . castPtr)
   SubroleAttribute ->
-    (pure . asCFType . toSubroleString, fromSubroleString . castPtr)
+    (fmap asCFType . toSubroleString,
+     fromSubroleCFString <=< manageCFObj . castPtr)
   RoleDescriptionAttribute -> cfObj
   HelpAttribute -> cfObj
   TitleAttribute -> cfObjSubty
@@ -803,7 +805,7 @@ attrGetterSetter = \case
   InsertionPointLineNumberAttribute -> cfObj
   where
     cfObj :: (CFObject -> IO CFTypeRef, CFTypeRef -> IO CFObject)
-    cfObj = (flip withCFPtr pure, retainManageCFObj)
+    cfObj = (flip withCFPtr pure, manageCFObj)
     cfObjSubty :: CFClass a => (Object a -> IO CFTypeRef, CFTypeRef -> IO (Object a))
-    cfObjSubty = (flip withCFPtr (pure . asCFType), retainManageCFObj . castPtr)
+    cfObjSubty = (flip withCFPtr (pure . asCFType), manageCFObj . castPtr)
     cfBool = (fmap asCFType . boolToRef, refToBool . castPtr)

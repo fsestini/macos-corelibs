@@ -119,5 +119,5 @@ copyAttributeNames el = fmap Array . except . liftIO . flip with pure $ do
   arrptr <- managed alloca
   liftIO $ do
     err <- axUIElementCopyAttributeNames elptr arrptr
-    either (pure . Left) (const (peek arrptr >>= fmap Right . retainManageCFObj))
+    either (pure . Left) (const (peek arrptr >>= fmap Right . manageCFObj))
       (toAXResult err)

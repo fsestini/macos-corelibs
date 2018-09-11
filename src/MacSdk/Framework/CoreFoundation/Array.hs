@@ -21,8 +21,6 @@ data CFArray
 type CFArrayRef = Ptr CFArray
 instance CFClass CFArray
 newtype Array a = Array { getArray :: Object CFArray }
--- type Array a = ManagedObj CFArray
--- newtype Array a = Array (ForeignPtr CFArray) deriving (CFObject)
 instance Functor Array where
   fmap _ (Array a) = Array a
 
@@ -40,9 +38,9 @@ getCFArrayValues arr = do
   ptrs <- forM [0.. (n-1)] (cf_array_get_value_at_index arr)
   pure (fmap castPtr ptrs)
 
-arrayValues :: MonadIO m => Array (Object a) -> m [Object a]
+arrayValues :: (MonadIO m, CFClass a) => Array (Object a) -> m [Object a]
 arrayValues arr = liftIO . withCFPtr (getArray arr) $ \cfarr ->
-  getCFArrayValues cfarr >>= mapM manageCFObj . fmap castPtr
+  getCFArrayValues cfarr >>= mapM retainManageCFObj . fmap castPtr
 
 --------------------------------------------------------------------------------
 -- Array creation
