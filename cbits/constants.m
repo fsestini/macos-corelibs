@@ -1,7 +1,6 @@
 #include <Carbon/Carbon.h>
 
-CG_EXTERN const CFStringRef kCGWindowAlpha
-  CG_AVAILABLE_STARTING(__MAC_10_5, __IPHONE_NA);
+CG_EXTERN const CFStringRef kCGWindowAlpha;
 CFStringRef kCGWindowNumber_() { return kCGWindowNumber; }
 CFStringRef kCGWindowStoreType_() { return kCGWindowStoreType; }
 CFStringRef kCGWindowLayer_() { return kCGWindowLayer; }
